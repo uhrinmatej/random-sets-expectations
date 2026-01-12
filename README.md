@@ -1,4 +1,4 @@
-A Python-based repository focused on random sets and computation of their expectations, with an emphasis on geometric representation and practical experimentation.
+A Python-based repository focused on random sets - computation and visualization of their expectations, with an emphasis on geometric representation and practical experimentation.
 
 The repository contains:
 - `utils.py` file, which implements core helper functions and classes that underpin the computations.
