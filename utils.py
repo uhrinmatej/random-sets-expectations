@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patch
 import math
-from queue import PriorityQueue
+from heapq import heappush, heappop
 
 #################################################
 #### FUNCTIONS ##################################
@@ -277,6 +277,8 @@ class SimpleRandomConvexSet:
 
         self._aumann = None
 
+
+
     def aumann(self):
         """
         Compute the Aumann expectation of the random convex set. In this case, the Aumann expectation is the Minkowski average of the convex polygons,
@@ -293,24 +295,31 @@ class SimpleRandomConvexSet:
         """
         if self._aumann is not None:
             return self._aumann
-        else:
-            output_polygon = []
-            first = self.probs @ np.array([poly.points[0] for poly in self.sets])
-            output_polygon.append(first)
 
-            pq = PriorityQueue()
-            for i,poly in enumerate(self.sets):
-                for j in range(poly.n):
-                    vec = self.probs[i] * (poly.points[j+1] - poly.points[j])
-                    pq.put((polar_angle(vec[0], vec[1]), *vec))
+        output_polygon = []
+        first = self.probs @ np.array([poly.points[0] for poly in self.sets])
+        output_polygon.append(first)
 
-            while not pq.empty():
-                _, x, y = pq.get()
-                output_polygon.append(output_polygon[-1] + np.array([x, y]))
+        pq = []
+        for i, poly in enumerate(self.sets):
+            v = self.probs[i] * (poly.points[1] - poly.points[0])
+            angle = polar_angle(v[0], v[1])
+            heappush(pq, (angle, i, 0, v[0], v[1]))
 
-            self._aumann = ConvexPolygon(output_polygon[:-1])
-            return self._aumann
+        while pq:
+            _, poly_idx, edge_idx, x, y = heappop(pq)
+            output_polygon.append(output_polygon[-1] + np.array([x, y]))
 
+            next_edge_idx = edge_idx + 1
+            poly = self.sets[poly_idx]
+
+            if next_edge_idx < poly.n:
+                v = self.probs[poly_idx] * (poly.points[next_edge_idx + 1] - poly.points[next_edge_idx])
+                angle = polar_angle(v[0], v[1])
+                heappush(pq, (angle, poly_idx, next_edge_idx, v[0], v[1]))
+
+        self._aumann = ConvexPolygon(output_polygon[:-1])
+        return self._aumann
 
     def coverage_function(self, x, y):
         """
